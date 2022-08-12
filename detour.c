@@ -13,23 +13,23 @@
 
 uint32_t encode_branch(uint32_t pc, uint32_t branch_to, uint8_t has_link, uint8_t is_relative) {
 	uint32_t offset = branch_to - ((pc + 4) & 0xFFFFFFFE);
-        uint8_t s = (offset >> 24) & 1;
-        uint8_t j1 = (~((offset >> 23) & 1) ^ s) & 1;
-        uint8_t j2 = (~((offset >> 22) & 1) ^ s) & 1;
-        uint16_t h = (offset >> 12) & 0x3ff;
-        uint16_t l = (offset >> 1) & 0x7ff;
-        uint8_t type = has_link ? 0b11 : 0b10;
-        uint8_t thumb_bit = is_relative ? 1 : 0;
-        uint8_t opcode = 0b11110;
-        uint32_t result = opcode << 27;
-        result |= s << 26;
-        result |= h << 16;
-        result |= type << 14;
-        result |= j1 << 13;
-        result |= thumb_bit << 12;
-        result |= j2 << 11;
-        result |= l;
-        return ((result & 0xffff) << 16) | ((result >> 16) & 0xffff);
+	uint8_t s = (offset >> 24) & 1;
+	uint8_t j = (~((offset >> 23) & 1) ^ s) & 1;
+	uint8_t j2 = (~((offset >> 22) & 1) ^ s) & 1;
+	uint16_t h = (offset >> 12) & 0x3ff;
+	uint16_t l = (offset >> 1) & 0x7ff;
+	uint8_t type = has_link ? 0b11 : 0b10;
+	uint8_t thumb_bit = is_relative ? 1 : 0;
+	uint8_t opcode = 0b11110;
+	uint32_t result = opcode << 27;
+	result |= s << 26;
+	result |= h << 16;
+	result |= type << 14;
+	result |= j << 13;
+	result |= thumb_bit << 12;
+	result |= j2 << 11;
+	result |= l;
+	return ((result & 0xffff) << 16) | ((result >> 16) & 0xffff);
 }
 
 void detour(void* dst_addr, void* src_addr) {
