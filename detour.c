@@ -10,7 +10,7 @@
 #include "detour.h"
 
 uint32_t encode_branch(uint32_t pc, uint32_t branch_to, uint8_t has_link, uint8_t is_relative) {
-	uint32_t offset = branch_to - ((pc + 4) & 0xFFFFFFFC);
+	int32_t offset = branch_to - ((pc + 4) & 0xFFFFFFFC);
 	uint8_t s = (offset >> 31) & 1;
 	uint8_t j = (~((offset >> 23) & 1) ^ s) & 1;
 	uint8_t j2 = (~((offset >> 22) & 1) ^ s) & 1;
