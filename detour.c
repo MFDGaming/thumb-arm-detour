@@ -35,6 +35,6 @@ void detour(void* dst_addr, void* src_addr) {
 	void *protect = (void *)(((uintptr_t)dst_addr-1) & -page_size);
 	mprotect(protect, page_size, PROT_READ | PROT_WRITE | PROT_EXEC);
 	uint32_t b = encode_branch((uint32_t)dst_addr-1, (uint32_t)src_addr-1, 0, 1);
-	*(uint32_t *)(dst_addr-1) = &b;
+	*(uint32_t *)((uint32_t)dst_addr-1) = b;
 	mprotect(protect, page_size, PROT_EXEC);
 }
