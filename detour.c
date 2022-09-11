@@ -12,8 +12,8 @@
 #include "detour.h"
 
 uint32_t encode_branch(uint32_t pc, uint32_t branch_to, uint8_t has_link, uint8_t is_relative) {
-	uint32_t offset = branch_to - ((pc + 4) & 0xFFFFFFFE);
-	uint8_t s = (offset >> 24) & 1;
+	uint32_t offset = branch_to - ((pc + 4) & 0xFFFFFFFC);
+	uint8_t s = (offset >> 31) & 1;
 	uint8_t j = (~((offset >> 23) & 1) ^ s) & 1;
 	uint8_t j2 = (~((offset >> 22) & 1) ^ s) & 1;
 	uint16_t h = (offset >> 12) & 0x3ff;
@@ -37,6 +37,6 @@ void detour(void* dst_addr, void* src_addr) {
 	void *protect = (void *)((uintptr_t)(dst_addr-1) & -page_size);
 	mprotect(protect, page_size, PROT_READ | PROT_WRITE | PROT_EXEC);
 	uint32_t b = encode_branch((int) dst_addr-1, (int) src_addr-1, 0, 1);
-	memcpy(dst_addr-1, (void *) &b, sizeof(uint32_t));
+	*(uint32_t *)(dst_addr-1) = &b;
 	mprotect(protect, page_size, PROT_EXEC);
 }
