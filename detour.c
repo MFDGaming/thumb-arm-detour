@@ -9,15 +9,28 @@
 #include <unistd.h>
 #include "detour.h"
 
-uint32_t encode_branch(uint32_t pc, uint32_t branch_to, uint8_t has_link, uint8_t is_relative) {
-	int32_t offset = branch_to - ((pc + 4) & 0xFFFFFFFC);
+uint32_t encode_branch(uint32_t pc, uint32_t branch_to, uint8_t has_link, uint8_t is_b) {
+	uint32_t mask;
+	uint8_t thumb_bit;
+	if (is_b) {
+		mask = 0xfffffffe;
+		thumb_bit = 1;
+	} else {
+		mask = 0xfffffffc;
+		thumb_bit = 0;
+	}
+	int32_t offset = branch_to - ((pc + 4) & mask);
 	uint8_t s = (offset >> 31) & 1;
 	uint8_t j = (~((offset >> 23) & 1) ^ s) & 1;
 	uint8_t j2 = (~((offset >> 22) & 1) ^ s) & 1;
 	uint16_t h = (offset >> 12) & 0x3ff;
-	uint16_t l = (offset >> 1) & 0x7ff;
+	uint16_t l;
+	if (is_b) {
+		l = (offset >> 1) & 0x7ff;
+	} else {
+		l = (offset >> 2) & 0x3ff;
+	}
 	uint8_t type = has_link ? 0b11 : 0b10;
-	uint8_t thumb_bit = is_relative ? 1 : 0;
 	uint8_t opcode = 0b11110;
 	uint32_t result = opcode << 27;
 	result |= s << 26;
