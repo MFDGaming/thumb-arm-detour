@@ -29,3 +29,12 @@ uint32_t encode_branch(uint32_t pc, uint32_t branch_to, uint8_t has_link, uint8_
 	result |= l;
 	return ((result & 0xffff) << 16) | ((result >> 16) & 0xffff);
 }
+
+void detour(void *dst_addr, void *src_addr) {
+	long page_size = sysconf(_SC_PAGESIZE);
+	void *protect = (void *)(((uintptr_t)dst_addr - 1) & -page_size);
+	mprotect(protect, 4, PROT_READ | PROT_WRITE | PROT_EXEC);
+	uint32_t b = encode_branch((uint32_t)dst_addr-1, (uint32_t)src_addr-1, 0, 1);
+	*(uint32_t *)((uint32_t)dst_addr-1) = b;
+	mprotect(protect, 4, PROT_EXEC);
+}
