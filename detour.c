@@ -9,6 +9,22 @@
 #include <unistd.h>
 #include "detour.h"
 
+uint32_t encode_movw(uint32_t rd, uint16_t imm16) {
+    uint8_t imm8 = imm16 & 0xff;
+    uint8_t imm3 = (imm16 >> 8) & 0x07;
+    uint8_t i = (imm16 >> 11) & 0x01;
+    uint8_t imm4 = (imm16 >> 12) & 0x0f;
+    uint8_t opcode = 0b11110;
+    uint32_t result = opcode << 27;
+    result |= i << 26;
+    result |= 0b100100 << 20;
+    result |= imm4 << 16;
+    result |= imm3 << 12;
+    result |= rd << 8;
+    result |= imm8;
+    return ((result & 0xffff) << 16) | ((result >> 16) & 0xffff);
+}
+
 uint32_t encode_branch(uint32_t pc, uint32_t branch_to, uint8_t has_link, uint8_t is_b) {
 	int32_t offset = branch_to - (pc + 4);
 	uint8_t s = (offset >> 24) & 1;
