@@ -20,7 +20,7 @@ uint32_t encode_branch(uint32_t pc, uint32_t branch_to, uint8_t has_link, uint8_
 		thumb_bit = 0;
 	}
 	int32_t offset = branch_to - ((pc + 4) & mask);
-	uint8_t s = (offset >> 31) & 1;
+	uint8_t s = ((offset >> 24) != 0) ? 1 : 0;
 	uint8_t j = (~((offset >> 23) & 1) ^ s) & 1;
 	uint8_t j2 = (~((offset >> 22) & 1) ^ s) & 1;
 	uint16_t h = (offset >> 12) & 0x3ff;
