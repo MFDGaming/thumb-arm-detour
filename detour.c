@@ -25,32 +25,29 @@ uint32_t encode_movw(uint32_t rd, uint16_t imm16) {
     return ((result & 0xffff) << 16) | ((result >> 16) & 0xffff);
 }
 
-uint32_t encode_branch(uint32_t pc, uint32_t branch_to, uint8_t has_link, uint8_t is_b) {
-	int32_t offset = branch_to - (pc + 4);
-	uint8_t s = (offset >> 24) & 1;
-	uint8_t j = (~((offset >> 23)) ^ s) & 1;
-	uint8_t j2 = (~((offset >> 22)) ^ s) & 1;
-	uint16_t h = (offset >> 12) & 0x3ff;
-	uint16_t l = (offset >> 1) & 0x7ff;
-	uint8_t type = has_link ? 0b11 : 0b10;
-	uint8_t thumb_bit = is_b ? 1 : 0;
-	uint8_t opcode = 0b11110;
-	uint32_t result = opcode << 27;
-	result |= s << 26;
-	result |= h << 16;
-	result |= type << 14;
-	result |= j << 13;
-	result |= thumb_bit << 12;
-	result |= j2 << 11;
-	result |= l;
-	return ((result & 0xffff) << 16) | ((result >> 16) & 0xffff);
+uint32_t encode_branch(uint32_t imm, uint8_t has_link, uint8_t is_b) {
+	union {
+            int32_t i;
+            uint32_t u;
+        } distance;
+	uint16_t s, j1, j2, imm10, imm11;
+	uint32_t result;
+	distance.i = (int32_t)imm / 2;
+	s = (distance.u >> 31) & 1;
+	j1 = (~((distance.u >> 22) ^ s)) & 1;
+	j2 = (~((distance.u >> 21) ^ s)) & 1;
+	imm10 = (distance.u >> 11) & 0x000003ff;
+        imm11 = distance.u & 0x000007ff;
+	((uint16_t *)&result)[0] = 0xf000 | (s << 10) | imm10;
+        ((uint16_t *)&result)[1] = 0x8000 | (has_link << 14) | (j1 << 13) | (is_b << 12) | (j2 << 11) | imm11;
+	return result;
 }
 
 void detour(void *dst_addr, void *src_addr) {
 	long page_size = sysconf(_SC_PAGESIZE);
 	void *protect = (void *)(((uintptr_t)dst_addr - 1) & -page_size);
 	mprotect(protect, 4, PROT_READ | PROT_WRITE | PROT_EXEC);
-	uint32_t b = encode_branch((uint32_t)dst_addr-1, (uint32_t)src_addr-1, 0, 1);
-	*(uint32_t *)((uint32_t)dst_addr-1) = b;
+	uint32_t b = encode_branch((uint32_t)src_addr - (uint32_t)dst_addr - 4, 0, 1);
+	*(uint32_t *)(dst_addr - 1) = b;
 	mprotect(protect, 4, PROT_EXEC);
 }
