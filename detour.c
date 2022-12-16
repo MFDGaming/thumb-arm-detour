@@ -25,22 +25,39 @@ uint32_t encode_movw(uint32_t rd, uint16_t imm16) {
     return ((result & 0xffff) << 16) | ((result >> 16) & 0xffff);
 }
 
-uint32_t encode_branch(uint32_t imm, uint8_t has_link, uint8_t is_b) {
-	union {
-            int32_t i;
-            uint32_t u;
-        } distance;
-	uint16_t s, j1, j2, imm10, imm11;
-	uint32_t result;
-	distance.i = (int32_t)imm / 2;
-	s = (distance.u >> 31) & 1;
-	j1 = (~((distance.u >> 22) ^ s)) & 1;
-	j2 = (~((distance.u >> 21) ^ s)) & 1;
-	imm10 = (distance.u >> 11) & 0x000003ff;
-        imm11 = distance.u & 0x000007ff;
-	((uint16_t *)&result)[0] = 0xf000 | (s << 10) | imm10;
-        ((uint16_t *)&result)[1] = 0x8000 | (has_link << 14) | (j1 << 13) | (is_b << 12) | (j2 << 11) | imm11;
-	return result;
+typedef struct {
+	unsigned int imm10: 10;
+	unsigned int s: 1;
+	unsigned int opcode: 5;
+	unsigned int imm11: 11;
+	unsigned int j2: 1;
+	unsigned int not_x: 1;
+	unsigned int j1: 1;
+	unsigned int has_link: 1;
+	unsigned int set: 1;
+} branch_t;
+
+typedef struct {
+	unsigned int padding: 1;
+	unsigned int imm11: 11;
+	unsigned int imm10: 10;
+	unsigned int i2: 1;
+	unsigned int i1: 1;
+	unsigned int s: 8;
+} imm_t;
+
+uint32_t encode_branch(uint32_t imm, bool has_link, bool not_x) {
+	branch_t out;
+	out.imm11 = ((imm_t *)&imm)->imm11 & 0x7ff;
+	out.imm10 = ((imm_t *)&imm)->imm10 & 0x3ff;
+	out.j2 = (~((imm_t *)&imm)->i2) & 0x1;
+	out.j1 = (~((imm_t *)&imm)->i1) & 0x1;
+	out.s = (((imm_t *)&imm)->s >> 31) & 0x1;
+	out.not_x = not_x ? 1 : 0;
+	out.has_link = has_link ? 1 : 0;
+	out.opcode = 0b11110;
+	out.set = 1;
+	return *(uint32_t *)&out;
 }
 
 void detour(void *dst_addr, void *src_addr) {
